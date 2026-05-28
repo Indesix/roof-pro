@@ -67,7 +67,7 @@ export default function DevisScreen() {
         }
         // État 2 : liste vide.
         ListEmptyComponent={
-          <EmptyState message="Aucun devis. Créez votre premier devis." />
+          <EmptyState title="Aucun devis. Créez votre premier devis." />
         }
         // État 3 : données.
         renderItem={({ item }) => (

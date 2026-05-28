@@ -28,7 +28,11 @@ export default function TabsLayout() {
             name="agenda"
             options={{ title: "Agenda" }}
         />
-        
+        <Tabs.Screen
+            name="chantier"
+            options={{ title: "Chantiers" }}
+        />
+
         </Tabs>
   );
 }

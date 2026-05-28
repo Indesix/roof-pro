@@ -11,7 +11,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
  *   v1 (actuelle) : schéma initial — clients, products, quotes,
  *                   quote_lines, appointments, chantiers
  */
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 /**
  * Fonction d'initialisation et de migration de la base.
@@ -181,17 +181,24 @@ export async function migrateDbIfNeeded(db: SQLiteDatabase): Promise<void> {
     currentVersion = 1;
   }
 
-  // -----------------------------------------------------------------------
-  // Future migration v1 → v2 (prévue Jour 8) :
-  //
-  // if (currentVersion === 1) {
-  //   await db.execAsync(`
-  //     CREATE TABLE chantier_photos (...);
-  //     CREATE TABLE chantier_checklist_items (...);
-  //   `);
-  //   currentVersion = 2;
-  // }
-  // -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
+// Migration v1 → v2 : table chantier_photos
+// -----------------------------------------------------------------------
+if (currentVersion === 1) {
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS chantier_photos (
+      id          INTEGER PRIMARY KEY NOT NULL,
+      chantier_id INTEGER NOT NULL
+                  REFERENCES chantiers(id) ON DELETE CASCADE,
+      uri         TEXT NOT NULL,
+      caption     TEXT,
+      created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_chantier_photos_chantier
+      ON chantier_photos(chantier_id);
+  `);
+  currentVersion = 2;
+}
 
   // Écriture de la version finale dans l'en-tête du fichier .db
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

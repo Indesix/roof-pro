@@ -1,6 +1,7 @@
 // app/quotes/[id]/index.tsx
 // Écran de DÉTAIL d'un devis : en-tête (numéro, statut, totaux) + ses lignes,
-// + actions de cycle de vie (changer le statut) + suppression.
+// + actions de cycle de vie (changer le statut) + création du chantier
+// (si devis accepté) + export PDF + suppression.
 // Utilise useQuote (charge en-tête + lignes) et le service pour les actions.
 //
 // IMPORTANT : le <Stack.Screen options={{ title: 'Devis' }} /> est monté DÈS
@@ -20,6 +21,7 @@ import { AppCard } from '../../../components/ui/AppCard';
 import { AppButton } from '../../../components/ui/AppButton';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
+import { CreateChantierButton } from '../../../components/chantier/CreateChantierButton';
 import { formatPrice, type QuoteStatus } from '../../../models/quote';
 import { spacing } from '../../../constants/spacing';
 import { colors } from '../../../constants/colors';
@@ -157,7 +159,8 @@ export default function QuoteDetailScreen() {
 
           {/* Cycle de vie : on n'affiche le titre + les boutons que s'il
               reste une action possible (draft ou sent). Une fois le devis
-              accepté ou refusé, le cycle est terminé → message d'état final. */}
+              accepté, on propose la création du chantier ; refusé, le cycle
+              est terminé. */}
           {quote.status === 'draft' || quote.status === 'sent' ? (
             <>
               <AppText variant="h2">Statut</AppText>
@@ -186,11 +189,14 @@ export default function QuoteDetailScreen() {
                 )}
               </View>
             </>
+          ) : quote.status === 'accepted' ? (
+            <>
+              <AppText variant="h2">Chantier</AppText>
+              <CreateChantierButton quoteId={quote.id} quoteStatus={quote.status} />
+            </>
           ) : (
             <AppText variant="body" color="textSecondary">
-              {quote.status === 'accepted'
-                ? 'Ce devis a été accepté. Aucune action supplémentaire.'
-                : 'Ce devis a été refusé. Aucune action supplémentaire.'}
+              Ce devis a été refusé. Aucune action supplémentaire.
             </AppText>
           )}
 

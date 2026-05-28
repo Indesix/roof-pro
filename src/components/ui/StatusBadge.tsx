@@ -18,7 +18,10 @@ export type Status =
   | 'active'     // client : actif
   | 'sent'        // ← ajouté (devis envoyé)
   | 'refused'     // ← ajouté (devis refusé)
-  | 'archived';   // ← était 'inactive'
+  | 'archived'   // ← était 'inactive'
+  | 'planned'      // ← ajouté
+  | 'in_progress'  // ← ajouté
+  | 'cancelled';   // ← ajouté
   
 
 // Pour chaque statut : sa couleur sémantique + son libellé affiché (FR).
@@ -33,6 +36,9 @@ const STATUS_CONFIG: Record<Status, { color: ColorName; label: string }> = {
   sent:      { color: 'warning',  label: 'Envoyé' },
   refused:   { color: 'danger',  label: 'Refusé' },
   archived:  { color: 'danger',  label: 'Archivé' },
+  planned:      { color: 'info',    label: 'Prévu' },
+  in_progress:  { color: 'warning', label: 'En cours' },
+  cancelled:    { color: 'danger',  label: 'Annulé' },
 };
 
 type StatusBadgeProps = {

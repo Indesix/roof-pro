@@ -1,4 +1,4 @@
-// src/app/(tabs)/agenda.tsx
+// src/app/(tabs)/chantier.tsx
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -9,17 +9,45 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAgenda } from '../../hooks/useAgenda';
-import { EventListItem } from '../../components/agenda/EventListItem';
-import { groupBySection } from '../../utils/agendaDates';
+import { useChantiers } from '../../hooks/useChantiers';
+import { ChantierListItem } from '../../components/chantier/ChantierListItem';
+import {
+  CHANTIER_STATUS_LABEL,
+  type ChantierStatus,
+  type ChantierWithRelations,
+} from '../../models/chantier';
 
-export default function AgendaScreen() {
+// Ordre fixe d'affichage des sections.
+const STATUS_ORDER: ChantierStatus[] = [
+  'in_progress',
+  'planned',
+  'completed',
+  'cancelled',
+];
+
+function groupByStatus(
+  chantiers: ChantierWithRelations[]
+): Array<{ title: string; status: ChantierStatus; data: ChantierWithRelations[] }> {
+  const map = new Map<ChantierStatus, ChantierWithRelations[]>();
+  for (const ch of chantiers) {
+    const arr = map.get(ch.status) ?? [];
+    arr.push(ch);
+    map.set(ch.status, arr);
+  }
+  return STATUS_ORDER.filter(s => map.has(s)).map(status => ({
+    title: CHANTIER_STATUS_LABEL[status],
+    status,
+    data: map.get(status)!,
+  }));
+}
+
+export default function ChantierListScreen() {
   const router = useRouter();
-  const { events, loading, error, refresh } = useAgenda();
+  const { chantiers, loading, error, refresh } = useChantiers();
 
-  const sections = useMemo(() => groupBySection(events), [events]);
+  const sections = useMemo(() => groupByStatus(chantiers), [chantiers]);
 
-  if (loading && events.length === 0) {
+  if (loading && chantiers.length === 0) {
     return (
       <View style={styles.center}>
         <ActivityIndicator />
@@ -38,18 +66,13 @@ export default function AgendaScreen() {
     );
   }
 
-  if (events.length === 0) {
+  if (chantiers.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>Aucun rendez-vous à venir</Text>
-          <Text style={styles.emptyText}>
-            Planifiez votre premier RDV avec un client.
-          </Text>
-        </View>
-        <FloatingAddButton
-          onPress={() => router.push('/agenda/new' as never)}
-        />
+      <View style={styles.center}>
+        <Text style={styles.emptyTitle}>Aucun chantier</Text>
+        <Text style={styles.emptyText}>
+          Un chantier se crée depuis la fiche d'un devis accepté.
+        </Text>
       </View>
     );
   }
@@ -60,32 +83,21 @@ export default function AgendaScreen() {
         sections={sections}
         keyExtractor={item => String(item.id)}
         renderItem={({ item }) => (
-          <EventListItem
-            event={item}
-            onPress={() => router.push(`/agenda/${item.id}` as never)}
+          <ChantierListItem
+            chantier={item}
+            onPress={() => router.push(`/chantier/${item.id}` as never)}
           />
         )}
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+            <Text style={styles.sectionTitle}>
+              {section.title} ({section.data.length})
+            </Text>
           </View>
         )}
         stickySectionHeadersEnabled
-        contentContainerStyle={{ paddingBottom: 96 }}
       />
-      <FloatingAddButton onPress={() => router.push('/agenda/new' as never)} />
     </View>
-  );
-}
-
-function FloatingAddButton({ onPress }: { onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]}
-    >
-      <Text style={styles.fabText}>+</Text>
-    </Pressable>
   );
 }
 
@@ -106,12 +118,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563EB',
   },
   retryText: { color: '#fff', fontWeight: '600' },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -133,21 +139,4 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#2563EB',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  fabText: { color: '#fff', fontSize: 28, lineHeight: 30, fontWeight: '300' },
 });

@@ -112,7 +112,7 @@ export default function DashboardScreen() {
                 </View>
               </>
             ) : (
-              <EmptyState message="Aucun devis à afficher pour l'instant." />
+              <EmptyState title="Aucun devis à afficher pour l'instant." />
             )}
           </View>
         </AppCard>
