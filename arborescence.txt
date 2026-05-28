@@ -1,0 +1,116 @@
+
+src
+├─ app
+  ├─ (tabs)
+    ├─ agenda.tsx
+    ├─ chantier.tsx
+    ├─ clients.tsx
+    ├─ dashboard.tsx
+    ├─ devis.tsx
+    ├─ produits.tsx
+    ├─ _layout.tsx
+  ├─ agenda
+    ├─ new.tsx
+    ├─ [id].tsx
+  ├─ chantier
+    ├─ [id].tsx
+  ├─ clients
+    ├─ new.tsx
+    ├─ [id]
+      ├─ edit.tsx
+      ├─ index.tsx
+    ├─ _layout.tsx
+  ├─ products
+    ├─ new.tsx
+    ├─ [id]
+      ├─ edit.tsx
+      ├─ index.tsx
+    ├─ _layout.tsx
+  ├─ quotes
+    ├─ new.tsx
+    ├─ [id]
+      ├─ index.tsx
+    ├─ _layout.tsx
+  ├─ settings.tsx
+  ├─ _layout.tsx
+├─ components
+  ├─ agenda
+    ├─ ClientPicker.tsx
+    ├─ EventForm.tsx
+    ├─ EventListItem.tsx
+    ├─ QuotePicker.tsx
+  ├─ chantier
+    ├─ ChantierListItem.tsx
+    ├─ CreateChantierButton.tsx
+    ├─ PhotoGrid.tsx
+  ├─ clients
+    ├─ ClientCard.tsx
+    ├─ ClientForm.tsx
+  ├─ dashboard
+    ├─ KpiCard.tsx
+  ├─ products
+    ├─ ProductCard.tsx
+    ├─ ProductForm.tsx
+  ├─ quotes
+    ├─ QuoteCard.tsx
+    ├─ QuoteForm.tsx
+    ├─ QuoteLineEditor.tsx
+  ├─ ui
+    ├─ AppButton.tsx
+    ├─ AppCard.tsx
+    ├─ AppDatePicker.tsx
+    ├─ AppInput.tsx
+    ├─ AppModal.tsx
+    ├─ AppSelect.tsx
+    ├─ AppText.tsx
+    ├─ EmptyState.tsx
+    ├─ LoadingSpinner.tsx
+    ├─ StatusBadge.tsx
+├─ constants
+  ├─ colors.ts
+  ├─ spacing.ts
+├─ features
+  ├─ appointments
+  ├─ clients
+  ├─ dashboard
+  ├─ products
+  ├─ quotes
+    ├─ quote.calculator.ts
+    ├─ quote.export.ts
+├─ hooks
+  ├─ useAgenda.ts
+  ├─ useChantier.ts
+  ├─ useChantiers.ts
+  ├─ useClient.ts
+  ├─ useClients.ts
+  ├─ useDashboard.ts
+  ├─ useProduct.ts
+  ├─ useProducts.ts
+  ├─ useQuote.ts
+  ├─ useQuotes.ts
+├─ lib
+  ├─ db.ts
+├─ models
+  ├─ chantier.ts
+  ├─ client.ts
+  ├─ event.ts
+  ├─ product.ts
+  ├─ quote.ts
+├─ services
+  ├─ db
+    ├─ chantier.service.ts
+    ├─ client.service.ts
+    ├─ dashboard.service.ts
+    ├─ event.service.ts
+    ├─ product.service.ts
+    ├─ quote.service.ts
+  ├─ integrations
+  ├─ storage
+├─ utils
+  ├─ agendaDates.ts
+├─ validations
+  ├─ chantier.schema.ts
+  ├─ client.schema.ts
+  ├─ event.schema.ts
+  ├─ product.schema.ts
+  ├─ quote.schema.ts

@@ -2,21 +2,21 @@
 
 Roof-Pro vous permet de gérer vos chantiers toitures, du devis en passant par les opérations de chantiers, jusqu'aux dashboard de chiffre d'affaire !
 
+
 ## Installation et lancement
-
-Prérequis : Node.js (v18+) et npm installés.
-
-   ```bash
+1. Prérequis : Node.js (v18+) et npm installés et app Expo Go installé
+```bash
+   git clone https://github.com/Indesix/roof-pro.git
+   cd roof-pro
    npm install
-   ```
-
+```
 2. Lancer l'application :
-
-   ```bash
+```bash
    npx expo start
-   ```
+```
 3. Scanner le QR code avec l'app Expo Go (Android/iOS),
    ou appuyer sur 'a' pour lancer sur un émulateur Android.
+   
    
 In the output, you'll find options to open the app in a
 
