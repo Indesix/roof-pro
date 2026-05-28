@@ -11,9 +11,12 @@ import { spacing } from '@/constants/spacing';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Tabs, useRouter } from 'expo-router';
+import { Pressable } from 'react-native';
 
 export default function DashboardScreen() {
   const db = useSQLiteContext();
+  const router = useRouter();
   const [tables, setTables] = useState<string[]>([]);
   const [version, setVersion] = useState<number | null>(null);
   const [nom, setNom] = useState('');
@@ -35,6 +38,20 @@ export default function DashboardScreen() {
   }, [db]);
   
   return (
+    <>
+      <Tabs.Screen
+        options={{
+          title: 'Dashboard',
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push('/settings')}
+              style={{ paddingHorizontal: spacing.md }}
+            >
+              <AppText style={{ fontSize: 22 }}>⚙️</AppText>
+            </Pressable>
+          ),
+        }}
+      />
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -95,7 +112,7 @@ export default function DashboardScreen() {
 <LoadingSpinner fullScreen message="Chargement des clients…" />
     </ScrollView>
     </KeyboardAvoidingView>
-  );
+  </> );
 }
 
 const styles = StyleSheet.create({

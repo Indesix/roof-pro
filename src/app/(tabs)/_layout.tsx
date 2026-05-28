@@ -28,10 +28,7 @@ export default function TabsLayout() {
             name="agenda"
             options={{ title: "Agenda" }}
         />
-        <Tabs.Screen
-            name="settings"
-            options={{ title: "Réglages" }}
-        />
+        
         </Tabs>
   );
 }

@@ -16,8 +16,11 @@ export default function RootLayout() {
       >
         {/* Navigation hiérarchique racine (Stack).
             Le groupe (tabs) est un écran de ce Stack. */}
-        <Stack>
+        <Stack >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="clients" options={{ headerShown: false }} />
+          <Stack.Screen name="products/[id]" options={{ headerShown: false }} />
+          
         </Stack>
       </SQLiteProvider>
     </Suspense>

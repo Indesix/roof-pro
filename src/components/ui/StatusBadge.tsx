@@ -13,7 +13,10 @@ export type Status =
   | 'accepted'   // accepté
   | 'rejected'   // refusé
   | 'completed'  // terminé
-  | 'draft';     // brouillon
+  | 'draft'      // brouillon
+  | 'lead'       // client : prospect
+  | 'active'     // client : actif
+  | 'archived';   // ← était 'inactive'
 
 // Pour chaque statut : sa couleur sémantique + son libellé affiché (FR).
 const STATUS_CONFIG: Record<Status, { color: ColorName; label: string }> = {
@@ -22,6 +25,9 @@ const STATUS_CONFIG: Record<Status, { color: ColorName; label: string }> = {
   rejected:  { color: 'danger',  label: 'Refusé' },
   completed: { color: 'success', label: 'Terminé' },
   draft:     { color: 'info',    label: 'Brouillon' },
+  lead:      { color: 'info',    label: 'Prospect' },
+  active:    { color: 'success', label: 'Actif' },
+  archived:  { color: 'danger',  label: 'Archivé' },
 };
 
 type StatusBadgeProps = {
