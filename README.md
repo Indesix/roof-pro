@@ -1,8 +1,8 @@
-# Welcome to your Expo app 👋
+# Bienvenue sur Roof-Pro App👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Roof-Pro vous permet de gérer vos chantiers toitures, du devis en passant par les opérations de chantiers, jusqu'aux dashboard de chiffre d'affaire !
 
-## Get started
+## Pour lancer le projet
 
 1. Install dependencies
 
@@ -25,26 +25,26 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+## Mise en place de la navigation
 
-When you're ready, run:
+Une navigation de base a été mise en place avec Expo Router.  
+Le projet a été structuré autour d’un dossier `src/app`, contenant un layout racine ainsi qu’un groupe d’onglets `(tabs)`.
 
-```bash
-npm run reset-project
-```
+Cette étape avait pour objectif de valider la structure globale du projet avant d’implémenter les fonctionnalités métier.  
+Des écrans placeholders ont été créés pour les modules principaux : dashboard, clients, devis, produits, agenda et réglages. 
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
-## Learn more
+## Choix de navigation
 
-To learn more about developing your project with Expo, look at the following resources:
+L’application a été structurée avec Expo Router selon une logique hiérarchique.  
+Un layout racine a été mis en place afin de définir la navigation globale de l’application, tandis qu’un second layout, situé dans le groupe `(tabs)`, organise les principaux modules sous forme d’onglets.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Ce découpage permet de distinguer deux niveaux :
+- une navigation générale entre les grandes parties de l’application ;
+- une navigation locale propre aux écrans principaux.
 
-## Join the community
+Le choix d’une Stack au niveau racine se justifie par la nécessité de gérer des transitions hiérarchiques entre écrans, par exemple entre une liste, une fiche détail et un formulaire d’édition.  
+Le choix des Tabs permet quant à lui d’offrir un accès rapide aux modules les plus utilisés, tels que le dashboard, les clients, les devis ou l’agenda.
 
-Join our community of developers creating universal apps.
+Enfin, Expo Router repose sur une convention de fichiers : chaque écran placé dans le dossier `app` devient une route navigable. Cette convention renforce la cohérence entre l’arborescence technique du projet et la structure fonctionnelle de l’application.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
