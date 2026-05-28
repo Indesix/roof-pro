@@ -20,6 +20,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="clients" options={{ headerShown: false }} />
           <Stack.Screen name="products/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="quotes" options={{ headerShown: false }} />
+
           
         </Stack>
       </SQLiteProvider>

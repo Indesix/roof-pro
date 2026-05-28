@@ -1,0 +1,323 @@
+// src/models/product.ts
+// Type d'une ligne de la table `products`, ALIGNÉ sur le schéma SQL réel
+// défini dans src/lib/db.ts (Jour 1). Colonnes en snake_case pour que
+// getAllAsync<Product> mappe directement.
+//
+// MVP : on ignore `category` et `image_uri` (colonnes laissées à null).
+
+export interface Product {
+  id: number;
+  name: string;
+  description: string | null;
+  image_uri: string | null;   // non utilisé au MVP, laissé null
+  unit_price: number;          // REAL en SQLite → number en TS
+  unit: string;                // unité de vente (m², ml, pièce, h, forfait)
+  category: string | null;     // non utilisé au MVP, laissé null
+  created_at: string;
+  updated_at: string;
+}
+
+// Unités de vente proposées dans le formulaire (AppSelect).
+export const PRODUCT_UNITS = ['m²', 'ml', 'pièce', 'h', 'forfait'] as const;
+export type ProductUnit = (typeof PRODUCT_UNITS)[number];
+
+// Helper d'affichage : prix formaté en euros.
+export function formatPrice(value: number): string {
+  return `${value.toFixed(2)} €`;
+}
+// src/services/db/product.service.ts
+// Couche d'accès aux données pour les produits, ALIGNÉE sur le schéma réel.
+// Même pattern que client.service.ts : les fonctions reçoivent `db` en
+// paramètre (le hook le récupère via useSQLiteContext). Requêtes paramétrées
+// `?` partout (slides 15, 21) : jamais d'interpolation de saisie utilisateur.
+//
+// MVP : on n'écrit pas category ni image_uri (laissés à leur défaut/null).
+
+import { type SQLiteDatabase } from 'expo-sqlite';
+import { type Product } from '../../models/product';
+import { type ProductFormData } from '../../validations/product.schema';
+
+// READ — liste, triée par nom (ordre alphabétique, pratique pour un catalogue).
+export async function getAllProducts(db: SQLiteDatabase): Promise<Product[]> {
+  return db.getAllAsync<Product>('SELECT * FROM products ORDER BY name ASC');
+}
+
+// READ — un seul produit (null si introuvable).
+export async function getProductById(
+  db: SQLiteDatabase,
+  id: number
+): Promise<Product | null> {
+  return db.getFirstAsync<Product>('SELECT * FROM products WHERE id = ?', [id]);
+}
+
+// CREATE — created_at/updated_at remplis par DEFAULT (datetime('now')).
+// Renvoie l'id généré (lastInsertRowId).
+export async function createProduct(
+  db: SQLiteDatabase,
+  data: ProductFormData
+): Promise<number> {
+  const result = await db.runAsync(
+    `INSERT INTO products (name, description, unit_price, unit)
+     VALUES (?, ?, ?, ?)`,
+    [
+      data.name,
+      data.description ?? null,
+      data.unit_price,
+      data.unit,
+    ]
+  );
+  return result.lastInsertRowId;
+}
+
+// UPDATE — met à jour updated_at à la main. Renvoie le nombre de lignes affectées.
+export async function updateProduct(
+  db: SQLiteDatabase,
+  id: number,
+  data: ProductFormData
+): Promise<number> {
+  const result = await db.runAsync(
+    `UPDATE products SET
+       name = ?, description = ?, unit_price = ?, unit = ?,
+       updated_at = datetime('now')
+     WHERE id = ?`,
+    [
+      data.name,
+      data.description ?? null,
+      data.unit_price,
+      data.unit,
+      id,
+    ]
+  );
+  return result.changes;
+}
+
+// DELETE — renvoie le nombre de lignes supprimées.
+export async function deleteProduct(
+  db: SQLiteDatabase,
+  id: number
+): Promise<number> {
+  const result = await db.runAsync('DELETE FROM products WHERE id = ?', [id]);
+  return result.changes;
+}
+// src/hooks/useProducts.ts
+// Hook de lecture de la liste des produits. Même pattern que useClients :
+// useSQLiteContext pour la connexion, useState pour les 3 états, et
+// useFocusEffect pour recharger automatiquement quand l'écran reprend le
+// focus (après création/édition/suppression). Pas de filtre statut ici
+// (les produits n'en ont pas) → plus simple que useClients.
+
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
+import { type Product } from '../models/product';
+import { getAllProducts } from '../services/db/product.service';
+
+interface UseProductsResult {
+  products: Product[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+export function useProducts(): UseProductsResult {
+  const db = useSQLiteContext();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const rows = await getAllProducts(db);
+      setProducts(rows);
+    } catch (e) {
+      console.error('useProducts load error:', e);
+      setError('Impossible de charger les produits.');
+    } finally {
+      setLoading(false);
+    }
+  }, [db]);
+
+  // Recharge à chaque fois que l'écran reprend le focus.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  return { products, loading, error, refetch: load };
+}
+// src/validations/product.schema.ts
+// Validation du formulaire produit avec Zod (Module 5), alignée sur le
+// schéma SQL. Le type du formulaire est inféré depuis le schéma (z.infer).
+//
+// POINT TECHNIQUE : unit_price est un REAL en base (number), mais un
+// <AppInput> renvoie toujours du TEXTE ("12.50"). On convertit donc la
+// saisie texte en nombre avant de valider, avec z.coerce.number().
+
+import { z } from 'zod';
+import { PRODUCT_UNITS } from '../models/product';
+
+const emptyToUndefined = (v: unknown) =>
+  typeof v === 'string' && v.trim() === '' ? undefined : v;
+
+export const productSchema = z.object({
+  // Nom obligatoire.
+  name: z
+    .string({ message: 'Le nom est obligatoire' })
+    .trim()
+    .min(2, 'Le nom doit faire au moins 2 caractères')
+    .max(100, 'Le nom est trop long'),
+
+  // Description facultative.
+  description: z.preprocess(
+    emptyToUndefined,
+    z.string().max(500, 'Description trop longue').optional()
+  ),
+
+  // Prix : z.coerce.number() transforme "12.50" (texte de l'input) en 12.5
+  // avant de valider. Doit être un nombre strictement positif.
+  unit_price: z.coerce
+    .number({ message: 'Le prix doit être un nombre' })
+    .positive('Le prix doit être supérieur à 0'),
+
+  // Unité : doit faire partie des unités autorisées.
+  unit: z.enum(PRODUCT_UNITS, { message: "L'unité est obligatoire" }),
+});
+
+// Type des données du formulaire, inféré depuis le schéma.
+// NB : grâce à z.coerce, unit_price est de type `number` dans ce type.
+export type ProductFormData = z.infer<typeof productSchema>;
+// src/components/products/ProductForm.tsx
+// Formulaire produit réutilisé en CRÉATION et en ÉDITION.
+// Composant contrôlé + validation Zod au submit. Réutilise le Design System.
+// Bouton fixe en bas (hors ScrollView) + SafeArea, comme ClientForm.
+//
+// Particularité : le prix est saisi en TEXTE (clavier decimal-pad), puis
+// converti en number par Zod (z.coerce.number) au moment du submit.
+
+import React, { useState } from 'react';
+import { View, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppInput } from '../ui/AppInput';
+import { AppSelect } from '../ui/AppSelect';
+import { AppButton } from '../ui/AppButton';
+import { productSchema, type ProductFormData } from '../../validations/product.schema';
+import { PRODUCT_UNITS, type ProductUnit } from '../../models/product';
+import { spacing } from '../../constants/spacing';
+
+interface ProductFormProps {
+  // Valeurs de départ pour l'édition. En création : laisser vide.
+  // Le prix est passé en string (ce que le champ texte attend).
+  initialValues?: {
+    name?: string;
+    description?: string;
+    unit_price?: number;
+    unit?: ProductUnit;
+  };
+  onSubmit: (data: ProductFormData) => Promise<void> | void;
+  submitLabel?: string;
+  loading?: boolean;
+}
+
+const UNIT_OPTIONS = PRODUCT_UNITS.map((u) => ({ value: u, label: u }));
+
+export function ProductForm({
+  initialValues,
+  onSubmit,
+  submitLabel = 'Enregistrer',
+  loading = false,
+}: ProductFormProps) {
+  const [name, setName] = useState(initialValues?.name ?? '');
+  const [description, setDescription] = useState(initialValues?.description ?? '');
+  // Le prix est stocké en TEXTE dans le state (l'input renvoie du texte).
+  // On convertit le number initial en string pour l'affichage en édition.
+  const [price, setPrice] = useState(
+    initialValues?.unit_price != null ? String(initialValues.unit_price) : ''
+  );
+  const [unit, setUnit] = useState<ProductUnit>(
+    initialValues?.unit ?? 'm²'
+  );
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  function handleSubmit() {
+    // Zod convertit price ("12.50") en number via z.coerce.number().
+    const result = productSchema.safeParse({
+      name,
+      description,
+      unit_price: price,
+      unit,
+    });
+
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0];
+        if (typeof field === 'string' && !fieldErrors[field]) {
+          fieldErrors[field] = issue.message;
+        }
+      }
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setErrors({});
+    onSubmit(result.data);
+  }
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <AppInput
+          label="Nom *"
+          value={name}
+          onChangeText={setName}
+          placeholder="Nom du produit"
+          error={errors.name}
+        />
+
+        <AppInput
+          label="Description"
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Description (optionnelle)"
+          multiline
+          error={errors.description}
+        />
+
+        <AppInput
+          label="Prix unitaire *"
+          value={price}
+          onChangeText={setPrice}
+          placeholder="0.00"
+          keyboardType="decimal-pad"
+          error={errors.unit_price}
+        />
+
+        <AppSelect
+          label="Unité *"
+          value={unit}
+          options={UNIT_OPTIONS}
+          onSelect={(v) => setUnit(v as ProductUnit)}
+        />
+      </ScrollView>
+
+      {/* Bouton fixe en bas, hors de la ScrollView */}
+      <View style={styles.footer}>
+        <AppButton title={submitLabel} onPress={handleSubmit} loading={loading} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  container: { padding: spacing.md, gap: spacing.md },
+  footer: { padding: spacing.md },
+});
