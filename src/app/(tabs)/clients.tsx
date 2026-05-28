@@ -1,87 +1,148 @@
-// src/app/(tabs)/clients.tsx — DÉMO design system (temporaire, Jour 2)
-// Montre les 3 états d'une liste : chargement → vide → données.
-import { useEffect, useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { AppText } from '@/components/ui/AppText';
-import { AppCard } from '@/components/ui/AppCard';
-import { StatusBadge } from '@/components/ui/StatusBadge';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { spacing } from '@/constants/spacing';
+// app/(tabs)/clients.tsx
+import React, { useCallback, useState, useMemo } from 'react';
+import { View, FlatList, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useClients } from '../../hooks/useClients';
+import { ClientCard } from '../../components/clients/ClientCard';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { AppButton } from '../../components/ui/AppButton';
+import { AppText } from '../../components/ui/AppText';
+import { AppInput } from '../../components/ui/AppInput';
+import { AppSelect } from '../../components/ui/AppSelect';
+import { type Client, type ClientStatus } from '../../models/client';
+import { spacing } from '../../constants/spacing';
 
-// Type local juste pour la démo (les vrais clients viendront de la base).
-type DemoClient = {
-  id: number;
-  name: string;
-  phone: string;
-  status: 'accepted' | 'pending';
-};
+// Filtre de statut. 'all' = pas de filtre (tous les clients).
+type FilterValue = 'all' | ClientStatus;
+
+const FILTER_OPTIONS: { value: FilterValue; label: string }[] = [
+  { value: 'all', label: 'Tous' },
+  { value: 'lead', label: 'Leads' },
+  { value: 'active', label: 'Actifs' },
+  { value: 'archived', label: 'Archivés' },
+];
 
 export default function ClientsScreen() {
-  const [loading, setLoading] = useState(true);
-  const [clients, setClients] = useState<DemoClient[]>([]);
+  const router = useRouter();
 
-  useEffect(() => {
-    // Simule une requête asynchrone de 1,5 s, puis remplit la liste.
-    const timer = setTimeout(() => {
-      setClients([
-        { id: 1, name: 'Jean Dupont', phone: '06 12 34 56 78', status: 'accepted' },
-        { id: 2, name: 'Marie Martin', phone: '06 98 76 54 32', status: 'pending' },
-        { id: 3, name: 'Toiture Express SARL', phone: '03 22 11 00 99', status: 'accepted' },
-      ]);
-      setLoading(false);
-    }, 1500);
+  // Filtre statut (appliqué côté SQL via le hook).
+  const [filter, setFilter] = useState<FilterValue>('all');
+  // Terme de recherche (appliqué côté JS sur le résultat).
+  const [search, setSearch] = useState('');
 
-    // Nettoyage : annule le timer si l'écran est quitté avant la fin.
-    return () => clearTimeout(timer);
-  }, []);
+  const { clients, loading, error, refetch } = useClients(
+    filter === 'all' ? {} : { status: filter }
+  );
 
-  // --- État 1 : chargement ---
-  if (loading) {
-    return <LoadingSpinner fullScreen message="Chargement des clients…" />;
+  // Recherche en JS sur prénom + nom. useMemo : on ne recalcule la liste
+  // filtrée que si la recherche ou les clients changent (Module 7).
+  const visibleClients = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter((c) => {
+      const fullName = `${c.first_name} ${c.last_name}`.toLowerCase();
+      return fullName.includes(q);
+    });
+  }, [clients, search]);
+
+  // MODULE 7 : référence stable tant que `router` ne change pas.
+  const openDetail = useCallback(
+    (client: Client) => {
+      router.push(`/clients/${client.id}`);
+    },
+    [router]
+  );
+
+  // MODULE 7 : renderItem stable → la FlatList ne recrée pas chaque ligne.
+  const renderItem = useCallback(
+    ({ item }: { item: Client }) => (
+      <ClientCard client={item} onPress={openDetail} />
+    ),
+    [openDetail]
+  );
+
+  if (loading && clients.length === 0) {
+    return <LoadingSpinner fullScreen />;
   }
 
-  // --- État 2 : liste vide ---
-  if (clients.length === 0) {
+  if (error) {
     return (
-      <EmptyState
-        icon={<AppText style={{ fontSize: 48 }}>📭</AppText>}
-        title="Aucun client"
-        description="Ajoutez votre premier client pour commencer."
-        actionLabel="Ajouter un client"
-        onAction={() => console.log('aller vers création client')}
-      />
+      <View style={styles.center}>
+        <AppText color="danger">{error}</AppText>
+        <AppButton title="Réessayer" variant="secondary" onPress={refetch} />
+      </View>
     );
   }
 
-  // --- État 3 : données ---
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <AppText variant="h2" style={styles.heading}>
-        Clients ({clients.length})
-      </AppText>
+    <View style={styles.container}>
+      {/* Recherche + filtre statut */}
+      <View style={styles.controls}>
+        <AppInput
+          label="Rechercher"
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Prénom ou nom..."
+          autoCapitalize="none"
+        />
+        <AppSelect
+          label="Filtrer par statut"
+          value={filter}
+          options={FILTER_OPTIONS}
+          onSelect={(v) => setFilter(v as FilterValue)}
+        />
+      </View>
 
-      {clients.map((c) => (
-        <AppCard key={c.id} onPress={() => console.log('ouvrir', c.name)}>
-          <View style={styles.cardHeader}>
-            <AppText variant="title">{c.name}</AppText>
-            <StatusBadge status={c.status} />
-          </View>
-          <AppText variant="body" color="textSecondary">{c.phone}</AppText>
-        </AppCard>
-      ))}
-    </ScrollView>
+      <FlatList
+        data={visibleClients}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        onRefresh={refetch}
+        refreshing={loading}
+        ListEmptyComponent={
+          <EmptyState
+            title="Aucun client"
+            description={
+              search.trim()
+                ? 'Aucun client ne correspond à votre recherche.'
+                : 'Aucun client ne correspond à ce filtre.'
+            }
+          />
+        }
+      />
+
+      {/* Bouton toujours visible */}
+      <View style={styles.fab}>
+        <AppButton
+          title="+ Nouveau client"
+          onPress={() => router.push('/clients/new')}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: spacing.md, gap: spacing.md },
-  heading: { marginBottom: spacing.xs },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  controls: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+  },
+  list: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl * 3 },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  fab: {
+    position: 'absolute',
+    left: spacing.md,
+    right: spacing.md,
+    bottom: spacing.lg,
   },
 });
